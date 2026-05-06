@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Blob Universe: Infinite Worlds</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
+
+  /* ============================================================
+     GLOBAL RESET & THEME
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; width: 100%; overflow: hidden; background-color: #0b0c10; font-family: 'Nunito', sans-serif; color: #fff; }
+  
+  /* Dynamic Background */
+  #bg-layer { position: fixed; inset: 0; z-index: 0; background: radial-gradient(circle at 50% 0%, #1f2833 0%, #0b0c10 100%); transition: background 2s ease; }
+  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle infinite alternate; }
+  @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px #fff; } }
+
+  /* ============================================================
+     LAYOUT (3 PANELS)
+     ============================================================ */
+  #app { position: relative; z-index: 1; display: flex; flex-direction: row; height: 100dvh; max-width: 1400px; margin: 0 auto; padding: 15px; gap: 20px; justify-content: center; }
+  
+  .panel { background: rgba(31, 40, 51, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(102, 252, 241, 0.2); border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+
+  /* ============================================================
+     LEFT PANEL: SHOP & UPGRADES
+     ============================================================ */
+  #shop-panel { width: 300px; padding: 20px; }
+  .panel-header { font-family: 'Orbitron', sans-serif; color: #66fcf1; font-size: 20px; text-align: center; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid rgba(102, 252, 241, 0.3); padding-bottom: 15px; margin-bottom: 15px; text-shadow: 0 0 10px rgba(102, 252, 241, 0.5); }
+  
+  .currency-box { background: rgba(0,0,0,0.4); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 20px; border: 1px solid #45a29e; box-shadow: inset 0 0 15px rgba(69, 162, 158, 0.2); }
+  .currency-label { font-size: 12px; color: #c5c6c7; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .currency-val { font-family: 'Orbitron', sans-serif; font-size: 32px; color: #66fcf1; text-shadow: 0 0 15px rgba(102, 252, 241, 0.8); transition: transform 0.2s; }
+  .currency-val.bump { transform: scale(1.2); color: #fff; }
+
+  .shop-item { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+  .shop-item:hover { border-color: #66fcf1; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 252, 241, 0.2); }
+  .shop-item:active { transform: scale(0.96); }
+  .shop-item.disabled { opacity: 0.5; pointer-events: none; border-color: rgba(255,255,255,0.05); }
+  .shop-title { font-weight: 900; font-size: 16px; color: #fff; margin-bottom: 5px; }
+  .shop-desc { font-size: 11px; color: #c5c6c7; line-height: 1.4; margin-bottom: 10px; }
+  .shop-cost { position: absolute; top: 15px; right: 15px; background: #1f2833; border: 1px solid #66fcf1; color: #66fcf1; font-weight: 900; font-size: 12px; padding: 4px 8px; border-radius: 8px; }
+
+  /* ============================================================
+     CENTER PANEL: GAMEPLAY
+     ============================================================ */
+  #game-panel { width: min(450px, 100%); display: flex; flex-direction: column; gap: 15px; background: transparent; border: none; box-shadow: none; backdrop-filter: none; }
+  
+  .hud { display: flex; justify-content: space-between; align-items: center; background: rgba(31, 40, 51, 0.8); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 20px; border: 1px solid rgba(102, 252, 241, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .stat { display: flex; flex-direction: column; }
+  .stat-label { font-size: 11px; color: #c5c6c7; text-transform: uppercase; font-weight: 900; letter-spacing: 1.5px; }
+  .stat-val { font-family: 'Orbitron', sans-serif; font-size: 26px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); transition: transform 0.1s; }
+  .stat-val.score-pop { transform: scale(1.3); color: #ff007f; text-shadow: 0 0 20px #ff007f; }
+
+  #level-badge { background: linear-gradient(135deg, #ff007f, #7928ca); padding: 8px 16px; border-radius: 12px; font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 900; letter-spacing: 2px; box-shadow: 0 0 20px rgba(255, 0, 127, 0.5); text-align: center; }
+
+  .canvas-wrapper { flex: 1; position: relative; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 80px rgba(102,252,241,0.05); background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.1); cursor: crosshair; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .canvas-wrapper.shake { animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both; border-color: #ff007f; }
+
+  #next-box { position: absolute; top: 15px; left: 15px; width: 70px; height: 70px; background: rgba(11, 12, 16, 0.8); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+  #next-box span { font-size: 10px; color: #c5c6c7; font-weight: 900; letter-spacing: 1px; margin-bottom: 5px; }
+
+  .danger-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,0,0,0.3) 0%, transparent 30%); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 5; }
+  .danger-overlay.active { opacity: 1; animation: dangerPulse 1s infinite alternate; }
+
+  /* ============================================================
+     RIGHT PANEL: LIVE GLOBAL LEADERBOARD
+     ============================================================ */
+  #lb-panel { width: 320px; padding: 20px; }
+  .lb-status { font-size: 10px; color: #45a29e; text-align: center; margin-top: -10px; margin-bottom: 15px; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .live-dot { width: 8px; height: 8px; background: #ff007f; border-radius: 50%; box-shadow: 0 0 10px #ff007f; animation: pulse 1s infinite alternate; }
+  
+  #lb-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-right: 5px; }
+  #lb-list::-webkit-scrollbar { width: 4px; }
+  #lb-list::-webkit-scrollbar-thumb { background: rgba(102, 252, 241, 0.3); border-radius: 4px; }
+  
+  .lb-row { display: grid; grid-template-columns: 35px 1fr auto; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent; }
+  .lb-row:hover { transform: translateX(5px); background: rgba(255,255,255,0.08); }
+  .lb-row.player-row { background: linear-gradient(90deg, rgba(102,252,241,0.2), transparent); border-left: 4px solid #66fcf1; transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+  .lb-row.up { animation: rankUp 0.5s ease; background: rgba(69, 162, 158, 0.2); }
+  
+  .lb-rank { font-family: 'Orbitron', sans-serif; font-size: 16px; color: #45a29e; font-weight: 900; }
+  .lb-name { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-score { font-family: 'Orbitron', sans-serif; font-size: 16px; color: #66fcf1; font-weight: 900; text-shadow: 0 0 5px rgba(102,252,241,0.5); }
+
+  /* ============================================================
+     MODALS & ANIMATIONS
+     ============================================================ */
+  .modal-bg { position: fixed; inset: 0; background: rgba(11, 12, 16, 0.9); backdrop-filter: blur(15px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+  .modal-bg.active { opacity: 1; pointer-events: auto; }
+  
+  .modal { background: linear-gradient(180deg, #1f2833, #0b0c10); border: 2px solid #45a29e; border-radius: 30px; padding: 40px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 50px rgba(102,252,241,0.1); transform: translateY(50px) scale(0.9); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .modal-bg.active .modal { transform: translateY(0) scale(1); }
+  
+  .modal h1 { font-family: 'Orbitron', sans-serif; font-size: 42px; margin-bottom: 10px; background: linear-gradient(to bottom right, #66fcf1, #45a29e); -webkit-background-clip: text; color: transparent; letter-spacing: 2px; }
+  .modal p { color: #c5c6c7; font-size: 16px; line-height: 1.6; margin-bottom: 30px; }
+  
+  input[type="text"] { width: 100%; padding: 20px; background: rgba(0,0,0,0.5); border: 2px solid #45a29e; border-radius: 16px; color: #fff; font-family: 'Orbitron', sans-serif; font-size: 20px; text-align: center; margin-bottom: 25px; outline: none; transition: all 0.3s; }
+  input[type="text"]:focus { border-color: #66fcf1; box-shadow: 0 0 20px rgba(102,252,241,0.3); }
+  
+  button.action-btn { width: 100%; padding: 20px; background: linear-gradient(135deg, #66fcf1, #45a29e); border: none; border-radius: 16px; color: #0b0c10; font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; cursor: pointer; transition: all 0.2s; box-shadow: 0 10px 30px rgba(102, 252, 241, 0.4); }
+  button.action-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(102, 252, 241, 0.6); }
+  button.action-btn:active { transform: translateY(2px); }
+
+  @keyframes shake { 10%, 90% { transform: translate3d(-3px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); } }
+  @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+  @keyframes dangerPulse { from { opacity: 0.3; } to { opacity: 0.8; } }
+  @keyframes rankUp { 0% { transform: scale(1); background: rgba(255,255,255,0.03); } 50% { transform: scale(1.05); background: rgba(102, 252, 241, 0.4); } 100% { transform: scale(1); background: rgba(255,255,255,0.03); } }
+
+  /* Mobile Responsive */
+  @media (max-width: 1000px) {
+    #app { flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; height: auto; min-height: 100dvh; }
+    #shop-panel, #lb-panel { width: 100%; max-width: 450px; order: 2; }
+    #game-panel { order: 1; height: 75vh; flex: none; }
+    #lb-panel { order: 3; height: 500px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bg-layer"></div>
+
+<div id="app">
+  <!-- SHOP / UPGRADES -->
+  <div class="panel" id="shop-panel">
+    <div class="panel-header">Research Lab</div>
+    
+    <div class="currency-box">
+      <div class="currency-label">Quantum Matter (QM)</div>
+      <div class="currency-val" id="ui-qm">0</div>
+    </div>
+
+    <div class="shop-item" id="btn-laser">
+      <div class="shop-title">Targeting Laser</div>
+      <div class="shop-desc">Projects a precise trajectory line to plan your drops.</div>
+      <div class="shop-cost">50 QM</div>
+    </div>
+
+    <div class="shop-item" id="btn-nuke">
+      <div class="shop-title">Micro-Singularity (Nuke)</div>
+      <div class="shop-desc">Instantly destroys all Tier 1 & 2 blobs in the container.</div>
+      <div class="shop-cost">500 QM</div>
+    </div>
+
+    <div class="shop-item" id="btn-multiplier">
+      <div class="shop-title">Score Multiplier</div>
+      <div class="shop-desc">Permanently increases base score from merges by 50%.</div>
+      <div class="shop-cost">1000 QM</div>
+    </div>
+  </div>
+
+  <!-- GAME AREA -->
+  <div id="game-panel">
+    <div class="hud">
+      <div class="stat">
+        <span class="stat-label">Pilot</span>
+        <span class="stat-val" id="ui-name" style="font-size: 20px; color: #66fcf1;">---</span>
+      </div>
+      <div id="level-badge">SECTOR 1</div>
+      <div class="stat" style="text-align: right;">
+        <span class="stat-label">Score</span>
+        <span class="stat-val" id="ui-score">0</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper" id="canvas-wrap">
+      <div class="danger-overlay" id="danger-zone"></div>
+      <div id="next-box">
+        <span>NEXT</span>
+        <canvas id="next-canvas"></canvas>
+      </div>
+      <canvas id="stage"></canvas>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="panel" id="lb-panel">
+    <div class="panel-header">Global Matrix</div>
+    <div class="lb-status">
+      <div class="live-dot"></div> LIVE DATALINK ACTIVE
+    </div>
+    <div id="lb-list">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg active" id="modal-start">
+  <div class="modal">
+    <h1>BLOB UNIVERSE</h1>
+    <p>Physics change as you progress. Merge entities to generate Quantum Matter. Upgrade your tech. Conquer the live leaderboard.</p>
+    <input type="text" id="input-name" placeholder="ENTER CALLSIGN" maxlength="10" autocomplete="off">
+    <button class="action-btn" id="btn-start">INITIALIZE</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-level">
+  <div class="modal" style="border-color: #ff007f;">
+    <h1 id="lvl-title" style="background: linear-gradient(to right, #ff007f, #7928ca); -webkit-background-clip: text;">WARP SUCCESSFUL</h1>
+    <p id="lvl-desc">Entering new sector. Gravity and atmospheric friction altered.</p>
+    <button class="action-btn" id="btn-continue" style="background: linear-gradient(135deg, #ff007f, #7928ca);">CONTINUE</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-end">
+  <div class="modal" style="border-color: #ff0000;">
+    <h1 style="color: #ff0000; background: none;">CRITICAL FAILURE</h1>
+    <p>The containment field breached. Your final data has been recorded to the matrix.</p>
+    <div style="font-family: 'Orbitron'; font-size: 50px; color: #fff; text-shadow: 0 0 20px #fff; margin-bottom: 30px;" id="end-score">0</div>
+    <button class="action-btn" id="btn-restart" style="background: linear-gradient(135deg, #ff0000, #8b0000); color: #fff;">REDEPLOY</button>
+  </div>
+</div>
+
+<!-- Matter.js Physics Engine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   DATA: TIERS, LEVELS, UPGRADES
+   ===================================================================== */
+const TIERS = [
+  { r: 16,  name: "Quark",    c1: "#e0eaf5", c2: "#869fb2", face: "dot" },
+  { r: 24,  name: "Atom",     c1: "#fdf3cd", c2: "#b58e30", face: "smile" },
+  { r: 35,  name: "Molecule", c1: "#b5f5cc", c2: "#2d8a4e", face: "smirk" },
+  { r: 48,  name: "Cell",     c1: "#8af5b1", c2: "#196634", face: "open" },
+  { r: 64,  name: "Organism", c1: "#fcd6a9", c2: "#a84b14", face: "tongue" },
+  { r: 82,  name: "Creature", c1: "#fce388", c2: "#8f570a", face: "smile" },
+  { r: 102, name: "Beast",    c1: "#d8cbf7", c2: "#5126a6", face: "grump" },
+  { r: 125, name: "Titan",    c1: "#f7a1ce", c2: "#911a51", face: "smirk" },
+  { r: 150, name: "Planet",   c1: "#81cbf5", c2: "#0d5682", face: "open" },
+  { r: 180, name: "Star",     c1: "#a7b2f2", c2: "#242d82", face: "god" },
+  { r: 215, name: "GALAXY",   c1: "#ff007f", c2: "#000000", face: "void" }
+];
+
+// 20 Progressive Levels shifting gravity and background
+const LEVELS = Array.from({length: 20}, (_, i) => {
+  const isZeroG = i === 9 || i === 19;
+  const isHeavy = i === 4 || i === 14;
+  return {
+    threshold: i === 0 ? 0 : 2000 * Math.pow(1.5, i),
+    name: `SECTOR ${i+1}`,
+    grav: isZeroG ? 0.2 : (isHeavy ? 1.5 : 0.8 + (Math.sin(i)*0.3)), // Fluid, floaty base gravity
+    rest: 0.15 + (i * 0.01), // Gets bouncier
+    bg: `radial-gradient(circle at 50% ${i*5}%, hsl(${200 + i*15}, 60%, 15%), #0b0c10)`
+  };
+});
+
+const GAME = {
+  playerName: "",
+  score: 0,
+  qm: 0, // Quantum Matter (Currency)
+  levelIdx: 0,
+  bodies: new Set(),
+  particles: [],
+  popups: [],
+  nextTier: 0,
+  heldTier: 0,
+  pointerX: 200,
+  canDrop: true,
+  isPaused: true,
+  isGameOver: false,
+  dangerTimer: 0,
+  
+  // Upgrades
+  hasLaser: false,
+  scoreMult: 1.0,
+  nukeCost: 500,
+  laserCost: 50,
+  multCost: 1000
+};
+
+const LOGICAL_WIDTH = 450;
+const LOGICAL_HEIGHT = 700;
+const WALL_THICKNESS = 60;
+const DROP_Y = 80;
+const KILL_Y = 120; // Game Over Line
+
+/* =====================================================================
+   LIVE MMO LEADERBOARD SIMULATION ENGINE
+   ===================================================================== */
+// This creates the brilliant illusion of a live global server
+const FIRST_NAMES = ["Alex", "Nyra", "Neo", "Trinity", "Zeke", "Nova", "Kai", "Luna", "Aria", "Jaxon", "Komal", "Venus", "Phuntsok", "Cipher", "Ghost"];
+const LAST_NAMES = ["_XX", "99", "Pro", "Star", "X", "Zero", "_TTV", "God", "Slayer", "777"];
+
+class LiveLeaderboard {
+  constructor() {
+    this.players = [];
+    this.generateInitialPool();
+    this.interval = setInterval(() => this.simulateWorld(), 2000);
+  }
+
+  generateInitialPool() {
+    for(let i=0; i<40; i++) {
+      const name = FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)] + LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)];
+      // Distribute scores exponentially so top ranks are hard to reach
+      const score = Math.floor(Math.pow(Math.random(), 3) * 50000);
+      this.players.push({ id: i, name, score });
+    }
+  }
+
+  simulateWorld() {
+    if(GAME.isPaused) return;
+    // Every few seconds, random players gain score simulating real-time play
+    let changed = false;
+    this.players.forEach(p => {
+      if(Math.random() < 0.3) {
+        p.score += Math.floor(Math.random() * 500) + 100;
+        changed = true;
+      }
+    });
+    if(changed) this.render();
+  }
+
+  render() {
+    // Combine mock players with actual player
+    const allData = [...this.players];
+    if(GAME.playerName && GAME.score > 0) {
+      allData.push({ isReal: true, name: GAME.playerName, score: GAME.score });
+    }
+    
+    allData.sort((a,b) => b.score - a.score);
+    const top15 = allData.slice(0, 15);
+    
+    const container = document.getElementById("lb-list");
+    container.innerHTML = "";
+    
+    top15.forEach((p, i) => {
+      const div = document.createElement("div");
+      div.className = `lb-row ${p.isReal ? 'player-row' : ''}`;
+      // Basic rank up animation detection
+      div.innerHTML = `
+        <span class="lb-rank">#${i+1}</span>
+        <span class="lb-name">${p.name}</span>
+        <span class="lb-score">${p.score}</span>
+      `;
+      container.appendChild(div);
+    });
+  }
+}
+const leaderboard = new LiveLeaderboard();
+
+/* =====================================================================
+   PHYSICS ENGINE (MATTER.JS)
+   ===================================================================== */
+const { Engine, World, Bodies, Body, Events } = Matter;
+// Fluid, methodical gravity
+const engine = Engine.create({ gravity: { x: 0, y: LEVELS[0].grav } });
+// Increase position iterations for better stack stability (no jitter)
+engine.positionIterations = 8;
+engine.velocityIterations = 6;
+const world = engine.world;
+
+const canvas = document.getElementById("stage");
+const ctx = canvas.getContext("2d", { alpha: false });
+let scaleX = 1, scaleY = 1;
+
+function resize() {
+  const wrap = document.getElementById("canvas-wrap");
+  const rect = wrap.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap at 2 for performance
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  scaleX = canvas.width / LOGICAL_WIDTH;
+  scaleY = canvas.height / LOGICAL_HEIGHT;
+}
+window.addEventListener("resize", resize);
+resize();
+
+// Next blob canvas
+const nCanvas = document.getElementById("next-canvas");
+const nCtx = nCanvas.getContext("2d", { alpha: true });
+nCanvas.width = 100; nCanvas.height = 100;
+
+// Walls (Bouncy)
+const wallOpts = { isStatic: true, friction: 0.05, restitution: 0.4 };
+World.add(world, [
+  Bodies.rectangle(LOGICAL_WIDTH/2, LOGICAL_HEIGHT + WALL_THICKNESS/2 - 5, LOGICAL_WIDTH, WALL_THICKNESS, wallOpts),
+  Bodies.rectangle(-WALL_THICKNESS/2, LOGICAL_HEIGHT/2, WALL_THICKNESS, LOGICAL_HEIGHT*2, wallOpts),
+  Bodies.rectangle(LOGICAL_WIDTH + WALL_THICKNESS/2, LOGICAL_HEIGHT/2, WALL_THICKNESS, LOGICAL_HEIGHT*2, wallOpts)
+]);
+
+/* =====================================================================
+   GAME MECHANICS
+   ===================================================================== */
+function getRandomTier() {
+  const r = Math.random();
+  if (r < 0.45) return 0;
+  if (r < 0.80) return 1;
+  return 2;
+}
+
+function spawnBlob(tier, x, y, isDrop) {
+  const t = TIERS[tier];
+  // Fluid tuning: Low friction, specific density curve to make big blobs push small ones
+  const b = Bodies.circle(x, y, t.r, {
+    restitution: LEVELS[GAME.levelIdx].rest,
+    friction: 0.05,
+    density: 0.001 * Math.pow(1.2, tier),
+    label: "blob",
+    slop: 0.05
+  });
+  b.tier = tier;
+  b.isMerging = false;
+  b.birth = Date.now();
+  
+  if(isDrop) Body.setVelocity(b, { x: 0, y: 2 }); // Gentle drop
+  
+  World.add(world, b);
+  GAME.bodies.add(b);
+  return b;
+}
+
+Events.on(engine, "collisionStart", (e) => {
+  if (GAME.isGameOver) return;
+  e.pairs.forEach(p => {
+    const a = p.bodyA, b = p.bodyB;
+    if (a.label !== "blob" || b.label !== "blob") return;
+    if (a.tier === b.tier && !a.isMerging && !b.isMerging) {
+      a.isMerging = b.isMerging = true;
+      // Defer to prevent Matter.js crash
+      setTimeout(() => processMerge(a, b), 0);
+    }
+  });
+});
+
+function processMerge(a, b) {
+  if (!GAME.bodies.has(a) || !GAME.bodies.has(b)) return;
+  World.remove(world, [a, b]);
+  GAME.bodies.delete(a);
+  GAME.bodies.delete(b);
+
+  const mx = (a.position.x + b.position.x) / 2;
+  const my = (a.position.y + b.position.y) / 2;
+  const newTier = a.tier + 1;
+
+  // VFX
+  spawnParticles(mx, my, TIERS[a.tier].c1, TIERS[newTier].c1, 15 + newTier*3);
+  if(newTier > 3) triggerShake();
+
+  // Economy & Score
+  const pts = Math.floor((newTier * 100) * GAME.scoreMult);
+  const qmGain = newTier * 2;
+  
+  addScore(pts);
+  addQM(qmGain);
+  spawnPopup(mx, my, `+${pts}`, TIERS[newTier].c1);
+
+  if (newTier >= TIERS.length) {
+    spawnBlob(newTier-1, mx, my, false); // Cap it
+    return;
+  }
+
+  const baby = spawnBlob(newTier, mx, my, false);
+  // Liquid pop effect
+  Body.setVelocity(baby, { x: (Math.random()-0.5)*1.5, y: -1.5 });
+}
+
+function addScore(pts) {
+  GAME.score += pts;
+  const el = document.getElementById("ui-score");
+  el.innerText = GAME.score;
+  el.classList.remove("score-pop");
+  void el.offsetWidth;
+  el.classList.add("score-pop");
+  
+  leaderboard.render();
+  checkLevelUp();
+}
+
+function addQM(amount) {
+  GAME.qm += amount;
+  const el = document.getElementById("ui-qm");
+  el.innerText = GAME.qm;
+  el.classList.remove("bump");
+  void el.offsetWidth;
+  el.classList.add("bump");
+  updateShopUI();
+}
+
+function checkLevelUp() {
+  const nextLvl = GAME.levelIdx + 1;
+  if (nextLvl < LEVELS.length && GAME.score >= LEVELS[nextLvl].threshold) {
+    GAME.levelIdx = nextLvl;
+    const lvl = LEVELS[nextLvl];
+    
+    document.getElementById("level-badge").innerText = lvl.name;
+    document.getElementById("bg-layer").style.background = lvl.bg;
+    
+    engine.gravity.y = lvl.grav;
+    GAME.bodies.forEach(b => b.restitution = lvl.rest);
+
+    GAME.isPaused = true;
+    document.getElementById("lvl-title").innerText = `WARP: ${lvl.name}`;
+    document.getElementById("lvl-desc").innerText = `Gravity scale shifting to ${lvl.grav.toFixed(1)}x. Atmosphere altering.`;
+    document.getElementById("modal-level").classList.add("active");
+  }
+}
+
+function triggerShake() {
+  const wrap = document.getElementById("canvas-wrap");
+  wrap.classList.remove("shake");
+  void wrap.offsetWidth;
+  wrap.classList.add("shake");
+}
+
+/* =====================================================================
+   SHOP & UPGRADES
+   ===================================================================== */
+function updateShopUI() {
+  const lBtn = document.getElementById("btn-laser");
+  if(GAME.hasLaser) {
+    lBtn.querySelector('.shop-title').innerText = "Laser Active";
+    lBtn.querySelector('.shop-cost').innerText = "OWNED";
+    lBtn.classList.add("disabled");
+  } else {
+    if(GAME.qm >= GAME.laserCost) lBtn.classList.remove("disabled");
+    else lBtn.classList.add("disabled");
+  }
+
+  const nBtn = document.getElementById("btn-nuke");
+  if(GAME.qm >= GAME.nukeCost) nBtn.classList.remove("disabled");
+  else nBtn.classList.add("disabled");
+
+  const mBtn = document.getElementById("btn-multiplier");
+  mBtn.querySelector('.shop-cost').innerText = GAME.multCost + " QM";
+  if(GAME.qm >= GAME.multCost) mBtn.classList.remove("disabled");
+  else mBtn.classList.add("disabled");
+}
+
+document.getElementById("btn-laser").addEventListener("click", () => {
+  if(GAME.qm >= GAME.laserCost && !GAME.hasLaser) {
+    addQM(-GAME.laserCost);
+    GAME.hasLaser = true;
+    updateShopUI();
+  }
+});
+
+document.getElementById("btn-nuke").addEventListener("click", () => {
+  if(GAME.qm >= GAME.nukeCost) {
+    addQM(-GAME.nukeCost);
+    // Destroy all Tier 0 and Tier 1 blobs
+    const toKill = [];
+    GAME.bodies.forEach(b => {
+      if(b.tier <= 1) toKill.push(b);
+    });
+    toKill.forEach(b => {
+      spawnParticles(b.position.x, b.position.y, TIERS[b.tier].c1, "#fff", 10);
+      World.remove(world, b);
+      GAME.bodies.delete(b);
+    });
+    triggerShake();
+    updateShopUI();
+  }
+});
+
+document.getElementById("btn-multiplier").addEventListener("click", () => {
+  if(GAME.qm >= GAME.multCost) {
+    addQM(-GAME.multCost);
+    GAME.scoreMult += 0.5;
+    GAME.multCost = Math.floor(GAME.multCost * 1.8); // Cost increases exponentially
+    document.getElementById("btn-multiplier").querySelector('.shop-desc').innerText = `Current Multiplier: ${GAME.scoreMult.toFixed(1)}x`;
+    updateShopUI();
+  }
+});
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+canvas.addEventListener("pointermove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const rawX = (e.clientX - rect.left) / scaleX;
+  const br = TIERS[GAME.heldTier].r;
+  GAME.pointerX = Math.max(WALL_THICKNESS + br, Math.min(LOGICAL_WIDTH - WALL_THICKNESS - br, rawX));
+});
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (GAME.isGameOver || GAME.isPaused || !GAME.canDrop) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const rawX = (e.clientX - rect.left) / scaleX;
+  const br = TIERS[GAME.heldTier].r;
+  GAME.pointerX = Math.max(WALL_THICKNESS + br, Math.min(LOGICAL_WIDTH - WALL_THICKNESS - br, rawX));
+
+  spawnBlob(GAME.heldTier, GAME.pointerX, DROP_Y, true);
+  GAME.canDrop = false;
+  
+  GAME.heldTier = GAME.nextTier;
+  GAME.nextTier = getRandomTier();
+  drawNextBlob();
+  
+  // Cooldown based on gravity level (higher gravity = faster play)
+  const cd = Math.max(300, 600 - (engine.gravity.y * 150));
+  setTimeout(() => GAME.canDrop = true, cd);
+});
+
+/* =====================================================================
+   RENDERING ENGINE (ULTRA JUICE)
+   ===================================================================== */
+function spawnParticles(x, y, c1, c2, count) {
+  for(let i=0; i<count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = Math.random() * 8 + 3;
+    GAME.particles.push({
+      x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      c: Math.random() > 0.5 ? c1 : c2, life: 1.0, size: Math.random()*5+2
+    });
+  }
+}
+
+function spawnPopup(x, y, txt, c) {
+  GAME.popups.push({ x, y, txt, c, life: 1.0, vy: -2 });
+}
+
+function drawFace(ctx, r, type, isMain = true) {
+  const px = isMain ? (GAME.pointerX - LOGICAL_WIDTH/2) * 0.02 : 0; // Look at mouse
+  ctx.fillStyle = "#fff";
+  const er = r * 0.18, ey = -r * 0.15, eo = r * 0.35;
+  
+  // Eyes
+  ctx.beginPath(); ctx.arc(-eo, ey, er, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eo, ey, er, 0, Math.PI*2); ctx.fill();
+  
+  // Pupils
+  ctx.fillStyle = "#0b0c10";
+  const pr = r * 0.08;
+  ctx.beginPath(); ctx.arc(-eo+px, ey, pr, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eo+px, ey, pr, 0, Math.PI*2); ctx.fill();
+
+  // Mouth
+  ctx.strokeStyle = "#0b0c10";
+  ctx.lineWidth = Math.max(2, r * 0.06);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  
+  if(type === "smile") { ctx.arc(0, r*0.15, r*0.3, 0.2, Math.PI-0.2); ctx.stroke(); }
+  else if(type === "smirk") { ctx.moveTo(-r*0.2, r*0.15); ctx.quadraticCurveTo(0, r*0.3, r*0.3, r*0.05); ctx.stroke(); }
+  else if(type === "open") { ctx.arc(0, r*0.2, r*0.15, 0, Math.PI*2); ctx.stroke(); }
+  else if(type === "tongue") { 
+    ctx.arc(0, r*0.15, r*0.3, 0.2, Math.PI-0.2); ctx.stroke(); 
+    ctx.fillStyle = "#ff007f"; ctx.beginPath(); ctx.arc(r*0.1, r*0.3, r*0.12, 0, Math.PI*2); ctx.fill(); 
+  }
+  else if(type === "grump") { ctx.moveTo(-r*0.2, r*0.25); ctx.lineTo(r*0.2, r*0.15); ctx.stroke(); }
+  else if(type === "god") { 
+    ctx.moveTo(-r*0.3, r*0.15); ctx.lineTo(r*0.3, r*0.15); ctx.stroke(); 
+    ctx.fillStyle = "#fce388"; ctx.beginPath(); ctx.moveTo(-r*0.4, -r*0.6); ctx.lineTo(-r*0.2, -r*0.8); ctx.lineTo(0, -r*0.5); ctx.lineTo(r*0.2, -r*0.8); ctx.lineTo(r*0.4, -r*0.6); ctx.fill();
+  }
+  else if(type === "void") { ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(0,0, r*0.7, 0, Math.PI*2); ctx.fill(); }
+  else { ctx.arc(0, r*0.2, r*0.05, 0, Math.PI*2); ctx.fill(); }
+}
+
+function drawNextBlob() {
+  nCtx.clearRect(0,0,100,100);
+  const t = TIERS[GAME.nextTier];
+  const r = Math.min(30, t.r);
+  const cx = 50, cy = 50;
+  
+  const grad = nCtx.createRadialGradient(cx-r*0.3, cy-r*0.3, r*0.1, cx, cy, r);
+  grad.addColorStop(0, t.c1); grad.addColorStop(1, t.c2);
+  nCtx.fillStyle = grad;
+  nCtx.beginPath(); nCtx.arc(cx, cy, r, 0, Math.PI*2); nCtx.fill();
+  
+  nCtx.save(); nCtx.translate(cx, cy); drawFace(nCtx, r, t.face, false); nCtx.restore();
+}
+
+function generateStars() {
+  const layer = document.getElementById("bg-layer");
+  for(let i=0; i<50; i++) {
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.width = Math.random()*3+1+"px";
+    s.style.height = s.style.width;
+    s.style.left = Math.random()*100+"%";
+    s.style.top = Math.random()*100+"%";
+    s.style.animationDuration = Math.random()*3+1+"s";
+    layer.appendChild(s);
+  }
+}
+
+function render() {
+  requestAnimationFrame(render);
+  if(!GAME.isPaused) Engine.update(engine, 1000/60);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(scaleX, scaleY);
+
+  // Danger Line
+  const pulse = Math.sin(Date.now() / 150) * 0.4 + 0.6;
+  ctx.strokeStyle = `rgba(255, 0, 127, ${pulse})`;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath(); ctx.moveTo(0, KILL_Y); ctx.lineTo(LOGICAL_WIDTH, KILL_Y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Shop Upgrade: Laser
+  if(GAME.hasLaser && GAME.canDrop && !GAME.isGameOver) {
+    ctx.strokeStyle = "rgba(102, 252, 241, 0.4)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(GAME.pointerX, DROP_Y); ctx.lineTo(GAME.pointerX, LOGICAL_HEIGHT); ctx.stroke();
+  }
+
+  // Dropper Ghost
+  if(GAME.canDrop && !GAME.isGameOver) {
+    const t = TIERS[GAME.heldTier];
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = t.c1;
+    ctx.beginPath(); ctx.arc(GAME.pointerX, DROP_Y, t.r, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Blobs
+  let inDanger = false;
+  GAME.bodies.forEach(b => {
+    const t = TIERS[b.tier];
+    const {x, y} = b.position;
+    
+    // Check Game Over
+    if (y - t.r < KILL_Y && (Date.now() - b.birth > 1500) && Math.abs(b.velocity.y) < 0.5) inDanger = true;
+
+    // Fluid Squash & Stretch based on velocity
+    const vel = Math.hypot(b.velocity.x, b.velocity.y);
+    const stretch = Math.min(1 + vel*0.015, 1.25);
+    const squash = Math.max(1 - vel*0.01, 0.85);
+    const ang = Math.atan2(b.velocity.y, b.velocity.x);
+
+    ctx.save();
+    ctx.translate(x, y);
+    if(vel > 1) { ctx.rotate(ang); ctx.scale(stretch, squash); ctx.rotate(-ang); }
+    ctx.rotate(b.angle);
+
+    // Render Body
+    const grad = ctx.createRadialGradient(-t.r*0.3, -t.r*0.3, t.r*0.1, 0, 0, t.r);
+    grad.addColorStop(0, t.c1); grad.addColorStop(1, t.c2);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0, 0, t.r, 0, Math.PI*2); ctx.fill();
+
+    // Gloss
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath(); ctx.ellipse(-t.r*0.2, -t.r*0.4, t.r*0.4, t.r*0.2, -0.4, 0, Math.PI*2); ctx.fill();
+
+    ctx.rotate(-b.angle); // Unrotate face
+    drawFace(ctx, t.r, t.face);
+    ctx.restore();
+  });
+
+  // Danger State
+  const dOverlay = document.getElementById("danger-zone");
+  if(inDanger && !GAME.isGameOver) {
+    dOverlay.classList.add("active");
+    GAME.dangerTimer++;
+    if(GAME.dangerTimer > 120) { // 2 seconds of danger
+      GAME.isGameOver = true;
+      GAME.isPaused = true;
+      document.getElementById("end-score").innerText = GAME.score;
+      document.getElementById("modal-end").classList.add("active");
+    }
+  } else {
+    dOverlay.classList.remove("active");
+    GAME.dangerTimer = 0;
+  }
+
+  // Particles
+  GAME.particles.forEach((p, i) => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.02;
+    if(p.life <= 0) { GAME.particles.splice(i, 1); return; }
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+  });
+  
+  // Popups
+  GAME.popups.forEach((p, i) => {
+    p.y += p.vy; p.life -= 0.02;
+    if(p.life <= 0) { GAME.popups.splice(i, 1); return; }
+    ctx.globalAlpha = p.life;
+    ctx.font = "900 22px Orbitron";
+    ctx.textAlign = "center";
+    ctx.fillStyle = p.c;
+    ctx.shadowColor = "#000"; ctx.shadowBlur = 10;
+    ctx.fillText(p.txt, p.x, p.y);
+    ctx.shadowBlur = 0;
+  });
+  ctx.globalAlpha = 1.0;
+  ctx.restore();
+}
+
+/* =====================================================================
+   UI BINDINGS & INIT
+   ===================================================================== */
+document.getElementById("btn-start").addEventListener("click", () => {
+  const inp = document.getElementById("input-name");
+  if(!inp.value.trim()) { inp.style.borderColor = "red"; return; }
+  
+  GAME.playerName = inp.value.trim().toUpperCase();
+  document.getElementById("ui-name").innerText = GAME.playerName;
+  document.getElementById("modal-start").classList.remove("active");
+  
+  GAME.heldTier = getRandomTier();
+  GAME.nextTier = getRandomTier();
+  drawNextBlob();
+  updateShopUI();
+  
+  GAME.isPaused = false;
+});
+
+document.getElementById("btn-continue").addEventListener("click", () => {
+  document.getElementById("modal-level").classList.remove("active");
+  GAME.isPaused = false;
+});
+
+document.getElementById("btn-restart").addEventListener("click", () => {
+  GAME.bodies.forEach(b => World.remove(world, b));
+  GAME.bodies.clear();
+  GAME.particles = [];
+  GAME.popups = [];
+  GAME.score = 0;
+  GAME.qm = 0;
+  GAME.levelIdx = 0;
+  GAME.isGameOver = false;
+  GAME.dangerTimer = 0;
+  
+  // Reset Upgrades
+  GAME.hasLaser = false;
+  GAME.scoreMult = 1.0;
+  GAME.multCost = 1000;
+  
+  document.getElementById("ui-score").innerText = "0";
+  document.getElementById("ui-qm").innerText = "0";
+  document.getElementById("level-badge").innerText = LEVELS[0].name;
+  document.getElementById("bg-layer").style.background = LEVELS[0].bg;
+  document.getElementById("btn-multiplier").querySelector('.shop-desc').innerText = `Permanently increases base score from merges by 50%.`;
+  
+  engine.gravity.y = LEVELS[0].grav;
+  updateShopUI();
+  
+  GAME.heldTier = getRandomTier();
+  GAME.nextTier = getRandomTier();
+  drawNextBlob();
+  
+  document.getElementById("modal-end").classList.remove("active");
+  GAME.isPaused = false;
+});
+
+generateStars();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
